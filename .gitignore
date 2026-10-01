@@ -1,0 +1,14 @@
+﻿# Environment variables & secrets
+.env
+.venv/
+env/
+venv/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Local user directories (Audio & Notes stay local)
+Raw Transcripts/
+Transcripts/
+Medical Wiki/

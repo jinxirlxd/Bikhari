@@ -1,0 +1,231 @@
+{
+  "main": {
+    "id": "a842260ca987f140",
+    "type": "split",
+    "children": [
+      {
+        "id": "9403f387920b9f56",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "dc37494d6a7ab8d1",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Medical Wiki/33 - Enviro. Emergencies.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "33 - Enviro. Emergencies"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "9abf52d86bfd2ce0",
+    "type": "split",
+    "children": [
+      {
+        "id": "fb151cea1ec1ef28",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "c6b7056c89b763f7",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "7bdacdb137534200",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "109ee1ab5ee0f6c7",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 200
+  },
+  "right": {
+    "id": "054effef2c6b992f",
+    "type": "split",
+    "children": [
+      {
+        "id": "8715fbc4cfcc22ad",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "d540a3190473b4ef",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "Medical Wiki/9781284243796_AUBK_CH01.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks"
+            }
+          },
+          {
+            "id": "d782bdada4669863",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "Medical Wiki/9781284243796_AUBK_CH01.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links"
+            }
+          },
+          {
+            "id": "7802722300d7e562",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "2d0de5c292a2560f",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "All properties"
+            }
+          },
+          {
+            "id": "acb935f317124d9d",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "Medical Wiki/9781284243796_AUBK_CH01.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Outline"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false,
+      "bases:Create new base": false
+    }
+  },
+  "active": "dc37494d6a7ab8d1",
+  "lastOpenFiles": [
+    "Medical Wiki/01 - EMS Systems.md",
+    "Medical Wiki/21 - Allergy & Anaphylaxis.md",
+    "Medical Wiki/39 - Vehicle Extrication & Special Rescue.md",
+    "Medical Wiki/41 - Terrorism Response & Disaster Management.md",
+    "Medical Wiki/40 - Incident Management.md",
+    "Medical Wiki/38 - Transport Operations.md",
+    "Medical Wiki/37 - Patients With Special Challenges.md",
+    "Medical Wiki/36 - Geriatric Emergencies.md",
+    "Medical Wiki/35 - Pediatric Emergencies.md",
+    "Medical Wiki/34 - Obstetrics & Neonatal Care.md",
+    "Medical Wiki/33 - Enviro. Emergencies.md",
+    "Medical Wiki/32 - Orthopaedic Injuries.md",
+    "Medical Wiki/31 - Abdominal & Genitourinary Injuries.md",
+    "Medical Wiki/30 - Chest Injuries.md",
+    "Medical Wiki/29 - Head & Spine Injuries.md",
+    "Medical Wiki/28 - Face & Neck Injuries.md",
+    "Medical Wiki/27 - Soft Tissue Injuries.md",
+    "Medical Wiki/26 - Bleeding.md",
+    "Medical Wiki/25 - Trauma OV.md",
+    "Medical Wiki/24 - Gynecologic Emergencies.md",
+    "Medical Wiki/23 - Behavioral Health Emergencies.md",
+    "Medical Wiki/22 - Toxicology.md",
+    "Medical Wiki/20 - Endocrine & Hematologic Emergencies.md",
+    "Medical Wiki/19 - Gastroint. & Urologic Emergencies.md",
+    "Medical Wiki/18 - Neurologic Emergencies.md",
+    "Medical Wiki/17 - Cardiovasc. Emergencies.md",
+    "Transcripts/9781284243796_AUBK_CH41.txt",
+    "Transcripts/9781284243796_AUBK_CH40.txt",
+    "Transcripts/9781284243796_AUBK_CH39.txt",
+    "Transcripts/9781284243796_AUBK_CH38.txt",
+    "Transcripts/9781284243796_AUBK_CH37.txt",
+    "Transcripts/9781284243796_AUBK_CH36.txt",
+    "Transcripts/9781284243796_AUBK_CH35.txt",
+    "Transcripts/9781284243796_AUBK_CH34.txt",
+    "Transcripts/9781284243796_AUBK_CH33.txt",
+    "Transcripts/9781284243796_AUBK_CH32.txt",
+    "Untitled.canvas"
+  ]
+}
