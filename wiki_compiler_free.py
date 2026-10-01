@@ -1,10 +1,11 @@
 ﻿import os
 import time
+import base64
+import fitz  # PyMuPDF
 from dotenv import load_dotenv
 from deepgram import DeepgramClient
 from groq import Groq
 
-# Load secure API keys from the .env file
 load_dotenv()
 DEEPGRAM_API_KEY = os.getenv("DEEPGRAM_API_KEY")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
@@ -15,11 +16,11 @@ if not DEEPGRAM_API_KEY or not GROQ_API_KEY:
 dg_client = DeepgramClient(api_key=DEEPGRAM_API_KEY)
 groq_client = Groq(api_key=GROQ_API_KEY)
 
-RAW_FOLDER = "./Raw Transcripts"
+INBOX_FOLDER = "./Inbox"
 TRANSCRIPT_FOLDER = "./Transcripts"
 WIKI_FOLDER = "./Medical Wiki"
 
-schema_instructions = """
+audio_schema = """
 You are an expert transcriptionist and education assistant. Your task is to convert raw lecture transcripts into structured, clean Markdown notes optimized for Obsidian. 
 
 Follow these formatting rules strictly:
@@ -31,8 +32,19 @@ Follow these formatting rules strictly:
 6. Comprehensiveness: Retain all critical definitions, clinical parameters, and technical values from the source material.
 """
 
+notes_expansion_schema = """
+You are an expert tutor. The user has provided chemistry and biology notes containing a mix of text and visual screenshots. 
+
+Your task is to interpret the entire context and output a seamless, comprehensive Obsidian study guide.
+
+Strict Directives:
+1. Complete the Thought: If the user's notes trail off or contain blanks, seamlessly fill in the missing biochemical mechanisms, formulas, or physiological processes.
+2. Expand & Cite: If relevant academic data is missing from the core concepts (e.g., standard clinical values, enzyme cofactors, or reaction catalysts), add it. You MUST append a brief inline citation for any added data (e.g., `(Added Context: standard physiological pH is 7.35-7.45)`).
+3. Visual Interpretation: Transcribe and integrate the data found within the screenshots (diagrams, molecular structures) directly into the text flow.
+4. Obsidian Formatting: Use `##` for main topics, `###` for sub-topics. Wrap all core concepts, enzymes, and anatomical structures in double brackets (e.g., `[[Krebs Cycle]]`). Do not include conversational filler.
+"""
+
 def chunk_text(text, max_chars=15000):
-    """Splits transcripts into safe token limits for Groq's Free Tier."""
     paragraphs = text.split("\n")
     chunks, current = [], ""
     for p in paragraphs:
@@ -46,83 +58,112 @@ def chunk_text(text, max_chars=15000):
         chunks.append(current.strip())
     return chunks
 
-def compile_wikis():
-    for folder in [RAW_FOLDER, TRANSCRIPT_FOLDER, WIKI_FOLDER]:
+def encode_pdf_to_base64_images(pdf_path):
+    doc = fitz.open(pdf_path)
+    base64_images = []
+    for page in doc:
+        pix = page.get_pixmap(dpi=150)
+        img_bytes = pix.tobytes("png")
+        base64_images.append(base64.b64encode(img_bytes).decode('utf-8'))
+    return base64_images
+
+def process_inbox():
+    for folder in [INBOX_FOLDER, TRANSCRIPT_FOLDER, WIKI_FOLDER]:
         os.makedirs(folder, exist_ok=True)
 
-    files = sorted([f for f in os.listdir(RAW_FOLDER) if f.lower().endswith(".mp3")])
-    print(f"Found {len(files)} total MP3 file(s).")
+    files = sorted([f for f in os.listdir(INBOX_FOLDER) if f.lower().endswith((".mp3", ".pdf"))])
+    print(f"Found {len(files)} files in Inbox.")
 
     for idx, filename in enumerate(files, 1):
+        file_path = os.path.join(INBOX_FOLDER, filename)
         base_name = os.path.splitext(filename)[0]
-        transcript_path = os.path.join(TRANSCRIPT_FOLDER, f"{base_name}.txt")
         wiki_path = os.path.join(WIKI_FOLDER, f"{base_name}.md")
 
         if os.path.exists(wiki_path):
-            print(f"[{idx}/{len(files)}] Skipping '{base_name}' — note exists.")
+            print(f"[{idx}/{len(files)}] Skipping '{filename}' — note exists.")
             continue
 
-        # --- STEP 1: DEEPGRAM TRANSCRIPTION ---
-        if os.path.exists(transcript_path):
-            print(f"[{idx}/{len(files)}] Loaded cached transcript: {base_name}.txt")
-            with open(transcript_path, "r", encoding="utf-8") as f:
-                transcript = f.read()
-        else:
-            print(f"\n[{idx}/{len(files)}] Transcribing audio with Deepgram...")
-            try:
-                mp3_path = os.path.join(RAW_FOLDER, filename)
-                with open(mp3_path, "rb") as audio:
-                    response = dg_client.listen.v1.media.transcribe_file(
-                        request=audio.read(), model="nova-3", smart_format=True
-                    )
+        if filename.lower().endswith(".mp3"):
+            transcript_path = os.path.join(TRANSCRIPT_FOLDER, f"{base_name}.txt")
+            if os.path.exists(transcript_path):
+                print(f"[{idx}/{len(files)}] Loaded cached transcript: {base_name}.txt")
+                with open(transcript_path, "r", encoding="utf-8") as f:
+                    transcript = f.read()
+            else:
+                print(f"\n[{idx}/{len(files)}] 🎧 Audio detected: {filename}. Transcribing with Deepgram...")
                 try:
-                    transcript = response.results.channels[0].alternatives[0].transcript
-                except (AttributeError, TypeError):
-                    transcript = response["results"]["channels"][0]["alternatives"][0]["transcript"]
+                    with open(file_path, "rb") as audio:
+                        response = dg_client.listen.v1.media.transcribe_file(
+                            request=audio.read(), model="nova-3", smart_format=True
+                        )
+                    try:
+                        transcript = response.results.channels[0].alternatives[0].transcript
+                    except (AttributeError, TypeError):
+                        transcript = response["results"]["channels"][0]["alternatives"][0]["transcript"]
 
-                with open(transcript_path, "w", encoding="utf-8") as f:
-                    f.write(transcript)
-                print(f"-> Saved transcript ({len(transcript):,} characters).")
-            except Exception as e:
-                print(f"[!] Deepgram transcription failed: {e}")
-                continue
-
-        # --- STEP 2: GROQ STRUCTURING (FREE TIER CHUNKING) ---
-        chunks = chunk_text(transcript)
-        print(f"[{idx}/{len(files)}] Formatting {base_name} across {len(chunks)} chunk(s)...")
-
-        full_markdown = []
-        for c_idx, chunk in enumerate(chunks, 1):
-            success = False
-            attempts = 0
-            while not success and attempts < 3:
-                try:
-                    attempts += 1
-                    completion = groq_client.chat.completions.create(
-                        model="llama-3.1-8b-instant",
-                        messages=[
-                            {"role": "system", "content": schema_instructions},
-                            {
-                                "role": "user",
-                                "content": f"Format Section {c_idx}/{len(chunks)} of this lecture strictly according to the instructions:\n\n{chunk}"
-                            },
-                        ],
-                        temperature=0.3,
-                    )
-                    full_markdown.append(completion.choices[0].message.content)
-                    success = True
-                    
-                    if len(chunks) > 1 and c_idx < len(chunks):
-                        print(f"   -> Part {c_idx} complete. Waiting 30s for free-tier token cooldown...")
-                        time.sleep(30)
+                    with open(transcript_path, "w", encoding="utf-8") as f:
+                        f.write(transcript)
                 except Exception as e:
-                    print(f"[!] Rate limit on chunk {c_idx}. Waiting 45s: {e}")
-                    time.sleep(45)
+                    print(f"[!] Deepgram transcription failed: {e}")
+                    continue
 
-        if full_markdown:
-            with open(wiki_path, "w", encoding="utf-8") as f:
-                f.write("\n\n---\n\n".join(full_markdown))
-            print(f"-> Successfully generated note: {wiki_path}")
+            chunks = chunk_text(transcript)
+            print(f"[{idx}/{len(files)}] -> Formatting {base_name} across {len(chunks)} chunk(s)...")
+
+            full_markdown = []
+            for c_idx, chunk in enumerate(chunks, 1):
+                success = False
+                attempts = 0
+                while not success and attempts < 3:
+                    try:
+                        attempts += 1
+                        completion = groq_client.chat.completions.create(
+                            model="llama-3.1-8b-instant",
+                            messages=[
+                                {"role": "system", "content": audio_schema},
+                                {"role": "user", "content": f"Format Section {c_idx}/{len(chunks)} strictly according to the instructions:\n\n{chunk}"},
+                            ],
+                            temperature=0.3,
+                        )
+                        full_markdown.append(completion.choices[0].message.content)
+                        success = True
+                        if len(chunks) > 1 and c_idx < len(chunks):
+                            print(f"   -> Part {c_idx} complete. Waiting 30s for cooldown...")
+                            time.sleep(30)
+                    except Exception as e:
+                        print(f"[!] Rate limit on chunk {c_idx}. Waiting 45s: {e}")
+                        time.sleep(45)
+
+            if full_markdown:
+                with open(wiki_path, "w", encoding="utf-8") as f:
+                    f.write("\n\n---\n\n".join(full_markdown))
+                print(f"✅ Successfully generated note: {wiki_path}")
+
+        elif filename.lower().endswith(".pdf"):
+            print(f"[{idx}/{len(files)}] 📝 Mixed media notes detected: {filename}. Slicing PDF for Vision AI...")
+            try:
+                base64_pages = encode_pdf_to_base64_images(file_path)
+                content_payload = [{"type": "text", "text": "Please read these notes and screenshots, fill in the blanks, and compile them into a seamless Obsidian guide."}]
+                for b64_img in base64_pages:
+                    content_payload.append({
+                        "type": "image_url",
+                        "image_url": {"url": f"data:image/png;base64,{b64_img}"}
+                    })
+
+                print(f"[{idx}/{len(files)}] -> Analyzing text and screenshots with Groq Vision (Free Tier)...")
+                completion = groq_client.chat.completions.create(
+                    model="llama-3.2-11b-vision-preview",
+                    messages=[
+                        {"role": "system", "content": notes_expansion_schema},
+                        {"role": "user", "content": content_payload},
+                    ],
+                    temperature=0.3,
+                )
+                with open(wiki_path, "w", encoding="utf-8") as f:
+                    f.write(completion.choices[0].message.content)
+                print(f"✅ Successfully generated note: {wiki_path}")
+            except Exception as e:
+                print(f"[!] Groq Vision processing failed: {e}")
 
 if __name__ == "__main__":
-    compile_wikis()
+    process_inbox()
