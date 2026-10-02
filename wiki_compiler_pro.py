@@ -1,7 +1,7 @@
 ﻿import os
 import json
 import base64
-import fitz  # PyMuPDF
+import pymupdf
 from dotenv import load_dotenv
 from deepgram import DeepgramClient
 from groq import Groq
@@ -22,29 +22,36 @@ ARCHIVE_FOLDER = "./Archive"
 TRANSCRIPT_FOLDER = "./Transcripts"
 
 def get_vault_manifest():
-    """Scans existing notes in the Obsidian vault."""
+    """Recursively scans all notes across all subfolders in the Obsidian vault."""
     if not os.path.exists(WIKI_FOLDER):
         os.makedirs(WIKI_FOLDER, exist_ok=True)
-    files = [f for f in os.listdir(WIKI_FOLDER) if f.lower().endswith(".md")]
-    return [os.path.splitext(f)[0] for f in files]
+    manifest = {}
+    for root, _, files in os.walk(WIKI_FOLDER):
+        for f in files:
+            if f.lower().endswith(".md"):
+                topic = os.path.splitext(f)[0]
+                manifest[topic] = os.path.join(root, f)
+    return manifest
 
-def encode_pdf_to_base64_images(pdf_path):
-    doc = fitz.open(pdf_path)
+def encode_pdf_to_base64_images(pdf_path, max_pages=3):
     base64_images = []
-    for page in doc:
-        pix = page.get_pixmap(dpi=150)
-        img_bytes = pix.tobytes("png")
-        base64_images.append(base64.b64encode(img_bytes).decode('utf-8'))
+    with pymupdf.open(pdf_path) as doc:
+        for page_idx in range(min(len(doc), max_pages)):
+            page = doc[page_idx]
+            pix = page.get_pixmap(dpi=150)
+            img_bytes = pix.tobytes("png")
+            base64_images.append(base64.b64encode(img_bytes).decode('utf-8'))
     return base64_images
 
 def route_and_structure(raw_text=None, base64_pages=None):
-    vault_topics = get_vault_manifest()
+    manifest = get_vault_manifest()
+    vault_topics = list(manifest.keys())
     
     system_prompt = f"""You are an expert pre-med knowledge management agent for Obsidian.
 Existing topics in the user's vault: {json.dumps(vault_topics)}
 
 Your Directives:
-1. Classification: Decide whether this content is a miscellaneous scrap/detail that belongs inside one of the EXISTING topics, or if it represents a brand NEW standalone topic.
+1. Classification: Decide whether this content is a scrap/detail that belongs inside one of the EXISTING topics, or if it represents a brand NEW standalone topic.
 2. If it belongs in an existing topic:
    - "mode": "append"
    - "target_topic": <Exact matching topic name from the list>
@@ -63,7 +70,7 @@ Respond ONLY with valid JSON matching this schema:
 }}"""
 
     if base64_pages:
-        content_payload = [{"type": "text", "text": "Analyze these notes/screenshots and sort them according to instructions."}]
+        content_payload = [{"type": "text", "text": "Analyze these diagrams and sort them according to instructions."}]
         for b64 in base64_pages:
             content_payload.append({"type": "image_url", "image_url": {"url": f"data:image/png;base64,{b64}"}})
         
@@ -104,24 +111,21 @@ def process_inbox():
         file_path = os.path.join(INBOX_FOLDER, filename)
         base_name = os.path.splitext(filename)[0]
         ext = os.path.splitext(filename)[1].lower()
-        wiki_path = os.path.join(WIKI_FOLDER, f"{base_name}.md")
+        manifest = get_vault_manifest()
         transcript_path = os.path.join(TRANSCRIPT_FOLDER, f"{base_name}.txt")
 
-        # 1. SKIP CHECK: Note already finished in Medical Wiki
-        if os.path.exists(wiki_path):
-            print(f"[{idx}/{len(files)}] ⏭️  Skipping '{filename}' — '{base_name}.md' already exists.")
-            archive_dest = os.path.join(ARCHIVE_FOLDER, filename)
-            os.replace(file_path, archive_dest)
-            print(f"    -> Moved '{filename}' to Archive/.")
+        # Skip if note already exists anywhere in vault
+        if base_name in manifest:
+            print(f"[{idx}/{len(files)}] ⏭️️  Skipping '{filename}' — note already exists in vault.")
+            os.replace(file_path, os.path.join(ARCHIVE_FOLDER, filename))
             continue
 
         print(f"\n[{idx}/{len(files)}] Processing: {filename}")
 
         try:
             if ext == ".mp3":
-                # 2. CACHE CHECK: Avoid re-calling Deepgram if text transcript exists
                 if os.path.exists(transcript_path):
-                    print(f"    ⚡ Loaded cached transcript: {base_name}.txt (Deepgram skipped).")
+                    print(f"    ⚡ Loaded cached transcript: {base_name}.txt")
                     with open(transcript_path, "r", encoding="utf-8") as f:
                         transcript = f.read()
                 else:
@@ -138,9 +142,18 @@ def process_inbox():
                 result = route_and_structure(raw_text=transcript)
 
             elif ext == ".pdf":
-                print("    📝 Slicing PDF for Vision classification...")
-                pages = encode_pdf_to_base64_images(file_path)
-                result = route_and_structure(base64_pages=pages)
+                pdf_text = ""
+                with pymupdf.open(file_path) as doc:
+                    for page in doc:
+                        pdf_text += page.get_text() + "\n"
+
+                if len(pdf_text.strip()) > 50:
+                    print(f"    📄 Extracted digital text from PDF...")
+                    result = route_and_structure(raw_text=pdf_text)
+                else:
+                    print("    📝 Scanned PDF detected. Routing to Vision AI...")
+                    pages = encode_pdf_to_base64_images(file_path, max_pages=3)
+                    result = route_and_structure(base64_pages=pages)
 
             elif ext in [".txt", ".md"]:
                 print("    📄 Reading text scrap...")
@@ -151,19 +164,20 @@ def process_inbox():
             mode = result.get("mode", "create")
             target = result.get("target_topic", base_name).replace(".md", "").strip()
             markdown = result.get("markdown", "").strip()
-            target_path = os.path.join(WIKI_FOLDER, f"{target}.md")
 
-            if mode == "append" and os.path.exists(target_path):
-                print(f"    📌 Merging scrap into existing note: {target}.md")
+            manifest = get_vault_manifest()
+            if mode == "append" and target in manifest:
+                target_path = manifest[target]
+                print(f"    📌 Merging scrap into: {target_path}")
                 with open(target_path, "a", encoding="utf-8") as f:
                     f.write(f"\n\n---\n{markdown}\n")
             else:
-                print(f"    📄 Creating note: {target}.md")
+                target_path = os.path.join(WIKI_FOLDER, f"{target}.md")
+                print(f"    📄 Creating note: {target_path}")
                 with open(target_path, "w", encoding="utf-8") as f:
                     f.write(markdown + "\n")
 
-            archive_dest = os.path.join(ARCHIVE_FOLDER, filename)
-            os.replace(file_path, archive_dest)
+            os.replace(file_path, os.path.join(ARCHIVE_FOLDER, filename))
             print(f"    ✅ Finished. Moved {filename} to Archive/.")
 
         except Exception as e:
