@@ -6,19 +6,19 @@
 
 ## 🚀 Release History & Changelog
 
-### v1.2.0 — Vault-Aware Routing & Smart Auto-Merge
+### v1.2.0 - Vault-Aware Routing & Smart Auto-Merge
 - **Live Vault Indexing:** The router runs a pre-flight scan of `Medical Wiki/` on startup, compiling all existing note titles into a lightweight manifest.
 - **Intelligent Auto-Merge:** Miscellaneous scraps, quick voice memos, and notes are semantically classified against your existing topics. If a scrap belongs to an existing subject (e.g., enzyme kinetics or renal clearance), Groq formats and appends it directly under an addendum header instead of creating redundant orphan notes.
 - **Standalone Topic Fallback:** If a snippet does not match any existing topic, the router automatically generates a clean, standalone note.
 - **Expanded Ingestion:** Added native support for `.txt` and `.md` scrap ingestion alongside `.pdf` and `.mp3`.
 - **Automated Archiving:** Processed files are automatically relocated from `Inbox/` to `Archive/` to keep your intake queue clean and prevent duplicate runs.
 
-### v1.1.0 — Vision AI & Mixed-Media Apple Notes
+### v1.1.0 - Vision AI & Mixed-Media Apple Notes
 - **Vision AI Ingestion:** Integrated PyMuPDF rendering to slice Apple Notes PDFs into high-resolution images for Groq Vision models (`llama-3.2-90b-vision-preview`).
 - **Academic Expansion Schema:** Detects missing biochemical mechanisms and incomplete thoughts, autocompletes reactions, and appends cited standard clinical values.
 - **Multi-Modal Inbox Router:** Replaced single-script audio processing with an automated file-type routing engine.
 
-### v1.0.0 — Initial Release
+### v1.0.0 - Initial Release
 - Two-stage decoupled pipeline using Deepgram Nova-3 for speech extraction and Groq LPUs for rapid Markdown structuring.
 
 ---
