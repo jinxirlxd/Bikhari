@@ -68,7 +68,7 @@ Respond ONLY with valid JSON matching this schema:
             content_payload.append({"type": "image_url", "image_url": {"url": f"data:image/png;base64,{b64}"}})
         
         completion = groq_client.chat.completions.create(
-            model="llama-3.2-90b-vision-preview",
+            model="qwen/qwen3.8-27b",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": content_payload}
@@ -78,7 +78,7 @@ Respond ONLY with valid JSON matching this schema:
         )
     else:
         completion = groq_client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            model="openai/gpt-oss-120b",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": f"Analyze and sort this content:\n\n{raw_text}"}
@@ -102,48 +102,69 @@ def process_inbox():
 
     for idx, filename in enumerate(files, 1):
         file_path = os.path.join(INBOX_FOLDER, filename)
+        base_name = os.path.splitext(filename)[0]
         ext = os.path.splitext(filename)[1].lower()
+        wiki_path = os.path.join(WIKI_FOLDER, f"{base_name}.md")
+        transcript_path = os.path.join(TRANSCRIPT_FOLDER, f"{base_name}.txt")
+
+        # 1. SKIP CHECK: Note already finished in Medical Wiki
+        if os.path.exists(wiki_path):
+            print(f"[{idx}/{len(files)}] ⏭️  Skipping '{filename}' — '{base_name}.md' already exists.")
+            archive_dest = os.path.join(ARCHIVE_FOLDER, filename)
+            os.replace(file_path, archive_dest)
+            print(f"    -> Moved '{filename}' to Archive/.")
+            continue
+
         print(f"\n[{idx}/{len(files)}] Processing: {filename}")
 
         try:
             if ext == ".mp3":
-                print("🎧 Transcribing audio with Deepgram...")
-                with open(file_path, "rb") as audio:
-                    res = dg_client.listen.v1.media.transcribe_file(request=audio.read(), model="nova-3", smart_format=True)
-                try:
-                    transcript = res.results.channels[0].alternatives[0].transcript
-                except:
-                    transcript = res["results"]["channels"][0]["alternatives"][0]["transcript"]
+                # 2. CACHE CHECK: Avoid re-calling Deepgram if text transcript exists
+                if os.path.exists(transcript_path):
+                    print(f"    ⚡ Loaded cached transcript: {base_name}.txt (Deepgram skipped).")
+                    with open(transcript_path, "r", encoding="utf-8") as f:
+                        transcript = f.read()
+                else:
+                    print("    🎧 Transcribing audio with Deepgram...")
+                    with open(file_path, "rb") as audio:
+                        res = dg_client.listen.v1.media.transcribe_file(request=audio.read(), model="nova-3", smart_format=True)
+                    try:
+                        transcript = res.results.channels[0].alternatives[0].transcript
+                    except:
+                        transcript = res["results"]["channels"][0]["alternatives"][0]["transcript"]
+                    with open(transcript_path, "w", encoding="utf-8") as f:
+                        f.write(transcript)
+
                 result = route_and_structure(raw_text=transcript)
 
             elif ext == ".pdf":
-                print("📝 Slicing PDF for Vision classification...")
+                print("    📝 Slicing PDF for Vision classification...")
                 pages = encode_pdf_to_base64_images(file_path)
                 result = route_and_structure(base64_pages=pages)
 
             elif ext in [".txt", ".md"]:
-                print("📄 Reading text scrap...")
+                print("    📄 Reading text scrap...")
                 with open(file_path, "r", encoding="utf-8") as f:
                     content = f.read()
                 result = route_and_structure(raw_text=content)
 
             mode = result.get("mode", "create")
-            target = result.get("target_topic", "General Notes").replace(".md", "").strip()
+            target = result.get("target_topic", base_name).replace(".md", "").strip()
             markdown = result.get("markdown", "").strip()
             target_path = os.path.join(WIKI_FOLDER, f"{target}.md")
 
             if mode == "append" and os.path.exists(target_path):
-                print(f"📌 Merging scrap into existing note: {target}.md")
+                print(f"    📌 Merging scrap into existing note: {target}.md")
                 with open(target_path, "a", encoding="utf-8") as f:
                     f.write(f"\n\n---\n{markdown}\n")
             else:
-                print(f"📄 Creating note: {target}.md")
+                print(f"    📄 Creating note: {target}.md")
                 with open(target_path, "w", encoding="utf-8") as f:
                     f.write(markdown + "\n")
 
             archive_dest = os.path.join(ARCHIVE_FOLDER, filename)
             os.replace(file_path, archive_dest)
-            print(f"✅ Finished. Moved {filename} to Archive/.")
+            print(f"    ✅ Finished. Moved {filename} to Archive/.")
 
         except Exception as e:
             print(f"[!] Failed to process {filename}: {e}")
