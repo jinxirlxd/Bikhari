@@ -29,6 +29,40 @@ Modern study and technical workflows generate significant unstructured document 
 
 ---
 
+## Quickstart
+
+1. **Install Dependencies:**
+   ```powershell
+   pip install pymupdf watchdog groq python-dotenv
+   ```
+
+2. **Configure Environment:**
+   Add your API key to `.env` in the project root:
+   ```env
+   GROQ_API_KEY=your_groq_api_key_here
+   ```
+
+3. **Start the Engine:**
+   ```powershell
+   python unified_compiler.py
+   ```
+
+---
+
+## Philosophy & Origin: Why Bhikhari?
+
+In Hindi (**भिखारी**) and Urdu (**بھکاری**), the word *Bhikhari* translates directly to a **beggar**—an individual possessing minimal personal resources, surviving on whatever materials they can gather.
+
+Academic competition has steadily shifted into a pay-to-win model. Proprietary question banks, expensive tutoring services, commercial test-prep ecosystems, and clean digital study materials tilt competitive advantages toward well-funded students. Those working with second-hand handouts, poorly scanned PDFs, or low-cost equipment are left at a structural disadvantage.
+
+**Bhikhari was built to eliminate that gap.**
+
+The philosophy behind this engine is absolute accessibility. A student with nothing more than basic computer access and low-spec hardware can ingest scattered, messy, or low-yield documents and produce an interconnected, world-class personal knowledge engine.
+
+Whether applied by a primary school student building early study habits, an undergraduate tackling complex pre-med STEM prerequisites, or an adult learner training for EMT certification, Bhikhari automates the labor of note synthesis—ensuring every student can build an elite academic knowledge base regardless of socioeconomic background.
+
+---
+
 ## Directory Layout
 
 ```text
@@ -45,28 +79,4 @@ AJMHN/
 ├── unified_compiler.py     # Ingestion engine and compilation logic
 ├── .env                    # Environment keys (ignored by git)
 └── README.md
-
-Quickstart
-Install Dependencies:
-
-PowerShell
-pip install pymupdf watchdog groq python-dotenv
-Configure Environment:
-Add your API key to .env in the project root:
-
-Code snippet
-GROQ_API_KEY=your_groq_api_key_here
-Start the Engine:
-
-PowerShell
-python unified_compiler.py
-Philosophy & Origin: Why Bhikhari?
-In Hindi (भिखारी) and Urdu (بھکاری), the word Bhikhari translates directly to a beggar—an individual possessing minimal personal resources, surviving on whatever materials they can gather.
-
-Academic competition has steadily shifted into a pay-to-win model. Proprietary question banks, expensive tutoring services, commercial test-prep ecosystems, and clean digital study materials tilt competitive advantages toward well-funded students. Those working with second-hand handouts, poorly scanned PDFs, or low-cost equipment are left at a structural disadvantage.
-
-Bhikhari was built to eliminate that gap.
-
-The philosophy behind this engine is absolute accessibility. A student with nothing more than basic computer access and low-spec hardware can ingest scattered, messy, or low-yield documents and produce an interconnected, world-class personal knowledge engine.
-
-Whether applied by a primary school student building early study habits, an undergraduate tackling complex pre-med STEM prerequisites, or an adult learner training for EMT certification, Bhikhari automates the labor of note synthesis—ensuring every student can build an elite academic knowledge base regardless of socioeconomic background.
+```
