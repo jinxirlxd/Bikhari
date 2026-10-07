@@ -1,42 +1,72 @@
 ﻿# Bhikhari (v2) — Autonomous Knowledge Base Ingestion Engine
 
-Bhikhari is an automated ingestion pipeline that continuously monitors multi-format documents, processes them via multimodal vision models, and compiles them into a structured, modular Obsidian knowledge base. It eliminates manual note-taking by decomposing composite documents into discrete, atomic notes and synthesizing them into a clean, searchable wiki.
+Bhikhari is an automated document processing pipeline that converts unstructured study materials, textbooks, handouts, and medical notes into an interconnected Obsidian knowledge base. Utilizing multimodal vision models, the system autonomously extracts diagrams, standardizes handwritten or pre-filled worksheets into clean templates, and organizes notes into atomic Markdown files.
 
 ---
 
-## What's New in v2
+## Executive Summary & Architecture
 
-* **Atomic Note Decomposition (`===FILE===` Splitting):**
-  * Breaks composite documents, multi-topic articles, and long chapters into standalone, modular Markdown files based on conceptual boundaries and titles rather than raw page dumps.
-* **AI Smart Merge Engine:**
-  * Prevents file collisions and duplicate notes (`Topic (1).md`). When an incoming concept matches an existing note, the LLM reads the current note and seamlessly integrates new points, definitions, and figures without overwriting prior content.
-* **Automated Worksheet & Form Sanitation:**
-  * Strips out pre-filled handwriting, checked boxes, and annotations from forms, recreating pristine blank fields, checkboxes, and tables for repeated interactive study and reuse.
-* **Multimodal Extraction & Diagram Linking:**
-  * Uses lightweight visual chunking (100 DPI rendering) paired with Groq Vision models to capture embedded figures, schemas, tables, and notations.
-  * Extracted figure assets are cataloged and routed to an archive repository to keep primary vault folders uncluttered.
-* **Dynamic Categorization & Routing:**
-  * Categorizes incoming content dynamically into designated knowledge directories and assigns frontmatter metadata (`tags`, `source`, `date_compiled`).
-* **Real-Time Directory Watcher:**
-  * Operates on an event-driven `watchdog` daemon that processes files immediately upon landing in the ingestion queue.
-* **Environment-Isolated Secrets:**
-  * Authentication keys and tokens are loaded strictly via `.env` to prevent credential exposure in source control.
+Modern study and technical workflows generate significant unstructured document clutter. Bhikhari monitors incoming queues, applies visual extraction models, and synthesizes content directly into an organized personal wiki.
+
+### Core Capabilities
+
+* **Atomic Note Decomposition:** Breaks monolithic, multi-topic PDFs into discrete Markdown notes divided by topic or article title rather than arbitrarily by page count.
+* **AI Smart Merge Engine:** Compares incoming material against existing vault files. New definitions, diagrams, and bullet points are woven into existing notes without creating duplicates (`Topic (1).md`) or overwriting prior entries.
+* **Worksheet & Form Sanitation:** Strips out handwriting, checked checkboxes, and completed answers from scanned assignments, generating clean templates with blank inputs and tables for active recall study.
+* **Multimodal Extraction & Diagram Linking:** Extracts raw figures, schemas, and diagrams into a structured archive directory and embeds them directly within relevant Obsidian notes (`![[filename.png]]`).
+* **Dynamic Domain Routing:** Automatically sorts synthesized material into designated root folders: `Biology/`, `Chemistry/`, `Psychology/`, and `EMT/`.
+* **Zero-Credential Codebase:** System credentials and API keys are isolated via local `.env` variables to prevent exposure in version control.
 
 ---
 
-## Directory Architecture
+## Technical Workflow
+
+1. **Queue Ingestion:** The `watchdog` daemon detects incoming files inside the `Inbox/` directory.
+2. **Visual Chunking:** PyMuPDF renders pages at 100 DPI to remain well within vision model token limits while isolating embedded diagrams.
+3. **Multimodal Transcription:** Groq vision endpoints (`qwen/qwen3.8-27b`) transcribe printed text, structural diagrams, and handwritten notes.
+4. **Synthesis & Delimitation:** A master prompt parses transcriptions into standardized note boundaries tagged with `===FILE: Title===` and folder targets.
+5. **Vault Integration:** Notes are created new or merged into existing files before source PDFs are moved to `Archive/`.
+
+---
+
+## Directory Layout
 
 ```text
 AJMHN/
-├── Inbox/                  # Drop incoming files and documents here
-├── Medical Wiki/           # Primary Knowledge Vault root
-│   ├── Biology/            # Domain directory
-│   ├── Chemistry/          # Domain directory
-│   ├── Psychology/         # Domain directory
-│   └── EMT/                # Domain directory
+├── Inbox/                  # Document ingestion queue
+├── Medical Wiki/           # Obsidian Vault root
+│   ├── Biology/            # Atomic biological concept notes
+│   ├── Chemistry/          # Atomic chemical concept notes
+│   ├── Psychology/         # Clinical psychology guides & worksheets
+│   └── EMT/                # Emergency Medical Technician protocols
 ├── Archive/
-│   ├── Attachments/        # Extracted diagrams, figures, and images
-│   └── *.pdf               # Archived source documents post-compilation
+│   ├── Attachments/        # Extracted diagrams and figures
+│   └── *.pdf               # Archived source PDFs post-compilation
 ├── unified_compiler.py     # Ingestion engine and compilation logic
 ├── .env                    # Environment keys (ignored by git)
 └── README.md
+
+Quickstart
+Install Dependencies:
+
+PowerShell
+pip install pymupdf watchdog groq python-dotenv
+Configure Environment:
+Add your API key to .env in the project root:
+
+Code snippet
+GROQ_API_KEY=your_groq_api_key_here
+Start the Engine:
+
+PowerShell
+python unified_compiler.py
+Philosophy & Origin: Why Bhikhari?
+In Hindi (भिखारी) and Urdu (بھکاری), the word Bhikhari translates directly to a beggar—an individual possessing minimal personal resources, surviving on whatever materials they can gather.
+
+Academic competition has steadily shifted into a pay-to-win model. Proprietary question banks, expensive tutoring services, commercial test-prep ecosystems, and clean digital study materials tilt competitive advantages toward well-funded students. Those working with second-hand handouts, poorly scanned PDFs, or low-cost equipment are left at a structural disadvantage.
+
+Bhikhari was built to eliminate that gap.
+
+The philosophy behind this engine is absolute accessibility. A student with nothing more than basic computer access and low-spec hardware can ingest scattered, messy, or low-yield documents and produce an interconnected, world-class personal knowledge engine.
+
+Whether applied by a primary school student building early study habits, an undergraduate tackling complex pre-med STEM prerequisites, or an adult learner training for EMT certification, Bhikhari automates the labor of note synthesis—ensuring every student can build an elite academic knowledge base regardless of socioeconomic background.
